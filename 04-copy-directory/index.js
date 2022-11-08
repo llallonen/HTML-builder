@@ -1,25 +1,27 @@
 const fs = require('fs');
 const path = require('path');
-const dirStartPath = path.join(__dirname, 'files');
+const dirInitPath = path.join(__dirname, 'files');
 const dirDestPath = path.join(__dirname, 'files-copy');
 
-
-async function copyDir(startFolder, destFolder) {
+async function copyDir(initFolder, destFolder) {
+    await fs.promises.rm(destFolder, { recursive: true, force: true });
     await fs.promises.mkdir(destFolder, { recursive: true });
-    const files = await fs.promises.readdir(dirStartPath);
 
-    for (let file of files) {
-        await fs.promises.copyFile(`${dirStartPath}/${file}`, `${dirDestPath}/${file}`)
+    try {
+        const filesForCopy = await fs.promises.readdir(initFolder, { withFileTypes: true });
+
+        for (let file of filesForCopy) {
+            let src = path.join(initFolder, file.name);
+            let dest = path.join(destFolder, file.name);
+
+            file.isFile() ?
+                await fs.promises.copyFile(src, dest) :
+                await copyDir(src, dest);
+        }
+    } catch (error) {
+        console.log('Promise')
     }
 }
 
-async function cleanFolder(folder) {
-    const filesForRemoving = await fs.promises.readdir(folder);
 
-    for (let file of filesForRemoving) {
-        fs.promises.unlink(`${folder}/${file}`);
-    }
-}
-
-
-copyDir(dirStartPath, dirDestPath)
+copyDir(dirInitPath, dirDestPath)
